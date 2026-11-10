@@ -1,0 +1,13 @@
+# Minimal dependencies to run the FastAPI service only (used by the Dockerfile).
+# For the full pipeline (EDA plots, training, tests) use requirements.txt instead.
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+xgboost==3.4.1
+shap==0.52.0
+joblib==1.5.3
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+slowapi==0.1.10

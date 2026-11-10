@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Churn Multi-Model Predictor</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="assets/chart.umd.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen">
+
+<header class="border-b border-white/40 backdrop-blur-sm sticky top-0 z-10">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-2">
+      <span class="text-[var(--accent)] text-xl">&#9679;</span>
+      <span class="font-semibold" style="font-family:'Sora',sans-serif">Customer Churn Multi-Model Predictor</span>
+    </div>
+    <div class="flex items-center gap-5 text-sm">
+      <span class="inline-flex items-center gap-2 text-[var(--ink-muted)]">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusLabel" role="status">Checking API&hellip;</span>
+      </span>
+      <a id="docsLink" href="http://localhost:8000/docs" target="_blank" rel="noopener" class="text-[var(--accent)] font-medium hover:underline">API Docs</a>
+    </div>
+  </div>
+  <nav class="max-w-6xl mx-auto px-6 pb-3 flex gap-2" role="tablist" aria-label="Pages">
+    <button id="tab-predict" class="tab-btn" role="tab">1 &middot; Predict</button>
+    <button id="tab-graphs" class="tab-btn" role="tab">2 &middot; Model Performance</button>
+    <button id="tab-about" class="tab-btn" role="tab">3 &middot; About Project</button>
+  </nav>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  <!-- ================= PAGE 1: PREDICT ================= -->
+  <div id="page-predict" class="grid grid-cols-12 gap-6">
+
+    <!-- Tile A: Wizard -->
+    <section class="glass-card col-span-12 lg:col-span-5 lg:row-span-2 p-6 flex flex-col" id="wizard" aria-label="Customer details">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-bold" style="font-family:'Sora',sans-serif">Customer Profile</h2>
+          <p class="text-sm text-[var(--ink-muted)]" id="stepLabel">Step 1</p>
+        </div>
+        <button id="resetBtn" type="button" title="Start over with a new customer" class="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap">&#8635; Reset</button>
+      </div>
+      <div class="step-track mb-5" id="stepTrack"></div>
+      <div id="wizardBody" class="flex-1 min-h-[280px]"></div>
+      <div class="flex gap-3 mt-5">
+        <button id="backBtn" class="btn-ghost px-4 py-2.5 text-sm">Back</button>
+        <button id="nextBtn" class="btn-primary flex-1 px-4 py-2.5 text-sm">Next</button>
+      </div>
+    </section>
+
+    <!-- Tile B: Prediction result -->
+    <section class="glass-card col-span-12 lg:col-span-7 p-6" id="resultCard" aria-live="polite">
+      <h2 class="text-lg font-bold mb-3" style="font-family:'Sora',sans-serif">Prediction</h2>
+      <div id="resultEmpty" class="text-sm text-[var(--ink-muted)] py-6 text-center">
+        Answer the questions on the left, then hit Predict Churn to see the result here.
+      </div>
+      <div id="resultContent" class="hidden">
+        <span id="resultBadge" class="inline-block px-3 py-1 rounded-full text-xs font-semibold">&nbsp;</span>
+        <p class="text-xs text-muted mt-3">Estimated chance of churn</p>
+        <div id="resultProb" class="display-num text-5xl font-bold tabular-nums mb-3">&nbsp;</div>
+        <p id="resultSummary" class="text-sm text-[var(--ink-muted)] mb-3"></p>
+        <p id="resultMeta" class="text-xs text-[var(--ink-muted)] pt-3 border-t border-[rgba(30,27,58,0.08)]"></p>
+      </div>
+      <div id="resultError" class="hidden text-sm rounded-xl p-4" style="background:rgba(242,85,123,0.10); color:var(--risk-high)"></div>
+      <p class="text-xs text-muted mt-4 pt-3 border-t border-[rgba(30,27,58,0.08)]">
+        Alert threshold: <span id="thresholdNote" class="font-semibold"></span> &middot;
+        <button id="goThreshold" type="button" class="underline text-[var(--accent)]">change it on the Model Performance tab</button>
+      </p>
+    </section>
+
+    <!-- Tile C: SHAP explainability -->
+    <section class="glass-card col-span-12 lg:col-span-4 p-6">
+      <h2 class="text-base font-bold mb-1" style="font-family:'Sora',sans-serif">Why this prediction</h2>
+      <p class="text-xs text-[var(--ink-muted)] mb-3">Top SHAP-ranked factors for this customer</p>
+      <div class="relative" style="height:220px">
+        <p id="shapEmpty" class="text-xs text-[var(--ink-muted)] text-center py-16">Run a prediction to see this.</p>
+        <div id="shapWrap" class="hidden relative h-full"><canvas id="shapChart"></canvas></div>
+      </div>
+      <p class="text-xs text-[var(--ink-muted)] mt-2 flex gap-4">
+        <span><span class="inline-block w-2 h-2 rounded-full dot-high mr-1"></span>increases risk</span>
+        <span><span class="inline-block w-2 h-2 rounded-full dot-low mr-1"></span>decreases risk</span>
+      </p>
+    </section>
+
+    <!-- Tile D: Multi-model comparison -->
+    <section class="glass-card col-span-12 lg:col-span-3 p-6">
+      <h2 class="text-base font-bold mb-1" style="font-family:'Sora',sans-serif">All 3 Models</h2>
+      <p class="text-xs text-[var(--ink-muted)] mb-3">Same customer, compared side by side</p>
+      <div id="compareList" class="text-sm text-[var(--ink-muted)]">Run a prediction to compare models.</div>
+    </section>
+
+  </div>
+
+  <!-- ================= PAGE 2: MODEL PERFORMANCE (graphs) ================= -->
+  <div id="page-graphs" class="hidden grid grid-cols-12 gap-6">
+    <section class="glass-card col-span-12 p-6">
+      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <h2 class="text-lg font-bold" style="font-family:'Sora',sans-serif">Model Performance</h2>
+      </div>
+      <p class="text-xs text-[var(--ink-muted)] mb-4 cursor-pointer hover:underline" id="bestModelNote" title="Click to retry if metrics failed to load">Loading&hellip;</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="text-sm font-semibold mb-2">ROC-AUC, F1 and Recall by model</h3>
+          <div style="height:280px"><canvas id="metricsChart"></canvas></div>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold mb-2">ROC Curve Comparison</h3>
+          <div style="height:280px"><canvas id="rocChart"></canvas></div>
+        </div>
+      </div>
+      <p class="text-xs text-[var(--ink-muted)] mt-5 pt-4 border-t border-[rgba(30,27,58,0.08)]">
+        All three models cluster within 0.008 ROC-AUC of each other on this dataset, so the ceiling here is set mostly
+        by the 19 available features, not by which algorithm reads them. Accuracy is lower than a typical churn
+        tutorial (~80%) on purpose &mdash; all three models trade some accuracy for recall (catching ~79&ndash;80% of
+        actual churners instead of ~51%), since missing a real churner usually costs more than one unnecessary
+        retention offer. Probabilities are re-calibrated to undo the inflation that class weighting causes, so
+        &ldquo;30%&rdquo; means roughly 30 in 100 similar customers churn.
+      </p>
+    </section>
+
+    <section class="glass-card col-span-12 p-6" aria-labelledby="explorerTitle">
+      <h2 id="explorerTitle" class="text-lg font-bold mb-1" style="font-family:'Sora',sans-serif">Where to draw the line</h2>
+      <p class="text-sm text-muted mb-4">
+        A model outputs a probability; <em>you</em> choose how likely a customer must be before it flags them.
+        Lower catches more churners but raises false alarms &mdash; which is why accuracy alone can mislead.
+        This threshold is also used by the Predict page.
+      </p>
+      <p id="explorerStatus" class="text-sm text-muted cursor-pointer hover:underline">Loading&hellip;</p>
+      <div id="explorerBody" class="hidden">
+        <div class="flex flex-wrap items-end gap-6 mb-4">
+          <div>
+            <label for="explorerModel" class="text-xs font-medium text-muted block">Model</label>
+            <select id="explorerModel" class="glass-input px-3 py-2 text-sm mt-1"></select>
+          </div>
+          <div class="flex-1 min-w-[240px]">
+            <label for="thresholdSlider" class="text-xs font-medium text-muted block mb-2">
+              Flag customers whose estimated churn chance is at least <span id="thresholdValue" class="font-bold text-[var(--ink)]">26.5%</span>
+            </label>
+            <input id="thresholdSlider" type="range" class="slider" min="0.05" max="0.8" step="0.005" value="0.265">
+          </div>
+          <button id="balancedBtn" type="button" class="btn-ghost px-3 py-2 text-xs">Reset to balanced</button>
+        </div>
+        <p id="explorerSentence" class="text-sm font-medium mb-5"></p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <div class="cm-grid" role="table" aria-label="Confusion matrix on the held-out test set">
+              <div></div><div class="cm-head">Predicted: stays</div><div class="cm-head">Predicted: churns</div>
+              <div class="cm-side">Actually stayed</div>
+              <div class="cm-cell cm-good"><div class="cm-num" id="cm-tn">&ndash;</div><div class="cm-lab">loyal, left alone</div></div>
+              <div class="cm-cell cm-warn"><div class="cm-num" id="cm-fp">&ndash;</div><div class="cm-lab">loyal, flagged by mistake</div></div>
+              <div class="cm-side">Actually churned</div>
+              <div class="cm-cell cm-bad"><div class="cm-num" id="cm-fn">&ndash;</div><div class="cm-lab">churner, missed</div></div>
+              <div class="cm-cell cm-good"><div class="cm-num" id="cm-tp">&ndash;</div><div class="cm-lab">churner, caught</div></div>
+            </div>
+            <div class="grid grid-cols-4 gap-3 mt-4">
+              <div class="stat-chip"><div class="text-lg font-bold display-num" id="mx-recall">&ndash;</div><div class="text-xs text-muted">Recall</div></div>
+              <div class="stat-chip"><div class="text-lg font-bold display-num" id="mx-precision">&ndash;</div><div class="text-xs text-muted">Precision</div></div>
+              <div class="stat-chip"><div class="text-lg font-bold display-num" id="mx-f1">&ndash;</div><div class="text-xs text-muted">F1</div></div>
+              <div class="stat-chip"><div class="text-lg font-bold display-num" id="mx-accuracy">&ndash;</div><div class="text-xs text-muted">Accuracy</div></div>
+            </div>
+            <p class="text-xs text-muted mt-3">Counts come from 1,409 held-out customers the models never trained on.</p>
+          </div>
+          <div style="height:320px"><canvas id="prChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= PAGE 3: ABOUT PROJECT ================= -->
+  <div id="page-about" class="hidden grid grid-cols-12 gap-6">
+    <section class="glass-card col-span-12 lg:col-span-7 p-6">
+      <h2 class="text-lg font-bold mb-3" style="font-family:'Sora',sans-serif">What this is</h2>
+      <p class="text-sm text-[var(--ink-muted)] mb-3">
+        A churn-risk tool that doesn't just say "at risk" &mdash; it compares three different models on the same
+        customer and shows, feature by feature, why each one reached its answer. Built around the idea that a
+        prediction stakeholders can't inspect isn't one they'll act on.
+      </p>
+      <h3 class="text-sm font-bold mt-5 mb-2">How it works</h3>
+      <ol class="text-sm text-[var(--ink-muted)] space-y-2 list-decimal list-inside">
+        <li>Answer the step-by-step questions about a customer (demographics, services, billing).</li>
+        <li>The API encodes those answers exactly the way the training data was encoded, then scores them.</li>
+        <li>SHAP explains the individual prediction; all three models run side by side for comparison.</li>
+      </ol>
+      <h3 class="text-sm font-bold mt-5 mb-2">Dataset</h3>
+      <p class="text-sm text-[var(--ink-muted)]">
+        IBM Telco Customer Churn &mdash; 7,043 customers, 19 features across demographics, subscribed services,
+        and account/billing details, with a 26.5% churn rate. Shipped in this project as
+        <code class="text-xs bg-[rgba(30,27,58,0.06)] px-1 py-0.5 rounded">data/telco_churn.csv</code>.
+      </p>
+    </section>
+
+    <section class="glass-card col-span-12 lg:col-span-5 p-6">
+      <h2 class="text-lg font-bold mb-3" style="font-family:'Sora',sans-serif">Under the hood</h2>
+      <h3 class="text-sm font-bold mb-2">Models compared</h3>
+      <p class="text-sm text-[var(--ink-muted)] mb-4">Logistic Regression, Random Forest, and XGBoost &mdash; each
+        hyperparameter-tuned via cross-validated grid search. See the Model Performance tab for live metrics.</p>
+      <h3 class="text-sm font-bold mb-2">Stack</h3>
+      <ul class="text-sm text-[var(--ink-muted)] space-y-1.5">
+        <li><span class="font-medium text-[var(--ink)]">Frontend</span> &mdash; vanilla JS (ES6 modules), Tailwind utilities, Chart.js</li>
+        <li><span class="font-medium text-[var(--ink)]">Backend</span> &mdash; FastAPI, scikit-learn, XGBoost, SHAP</li>
+        <li><span class="font-medium text-[var(--ink)]">Data</span> &mdash; SQLite prediction log, pandas pipeline</li>
+        <li><span class="font-medium text-[var(--ink)]">Ops</span> &mdash; Docker Compose, MLflow experiment tracking</li>
+      </ul>
+      <p class="text-xs text-[var(--ink-muted)] mt-5 pt-4 border-t border-[rgba(30,27,58,0.08)]">
+        Predictions are model estimates based on historical patterns, not guarantees about any individual customer.
+      </p>
+    </section>
+
+    <section class="glass-card col-span-12 p-6">
+      <h2 class="text-lg font-bold mb-1" style="font-family:'Sora',sans-serif">The data behind it</h2>
+      <p id="datasetSource" class="text-xs text-muted mb-3"></p>
+      <p id="datasetStatus" class="text-sm text-muted cursor-pointer hover:underline">Loading&hellip;</p>
+      <div id="datasetBody" class="hidden">
+        <div id="datasetStats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-sm font-bold mb-2">Columns</h3>
+            <div class="table-wrap" style="max-height:320px">
+              <table class="data-table">
+                <thead><tr><th>Column</th><th>Type</th><th>Unique</th><th>Missing</th><th>Examples</th></tr></thead>
+                <tbody id="datasetColumns"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold mb-2">First 8 customers</h3>
+            <div class="table-wrap" style="max-height:320px">
+              <table class="data-table"><thead id="datasetSampleHead"></thead><tbody id="datasetSampleBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-muted mt-4">
+          Every prediction made here is also logged to a SQLite database &mdash;
+          <a id="downloadLog" href="#" class="underline text-[var(--accent)]">download the prediction log (CSV)</a>.
+        </p>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

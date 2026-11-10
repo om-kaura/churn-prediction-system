@@ -1,0 +1,15 @@
+{
+  "best_model": "XGBoost",
+  "selection_criterion": "mean 5-fold CV ROC-AUC on training data",
+  "metrics": {
+    "Model": "XGBoost",
+    "Accuracy": 0.7488,
+    "Precision": 0.5174,
+    "Recall": 0.7941,
+    "F1": 0.6266,
+    "ROC_AUC": 0.8479,
+    "CV_ROC_AUC": 0.8486,
+    "CV_ROC_AUC_STD": 0.0121,
+    "Brier": 0.1341
+  }
+}

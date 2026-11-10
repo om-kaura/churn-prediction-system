@@ -1,0 +1,30 @@
+# Config is injected at runtime by docker-compose (env_file), never baked into an image
+.env
+
+# Not needed to *serve* the API (only to train it)
+data/
+mlruns/
+mlruns.db
+eda.py
+train_model.py
+run.py
+web_ui/
+
+# Runtime state — the image shouldn't carry a stale snapshot of the prediction log
+outputs/predictions.db
+
+# Junk
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.venv/
+venv/
+node_modules/
+*.md
+
+# Dev/CI only — the API image needs just api/ and outputs/
+tests/
+.github/
+pytest.ini
+data_validation.py

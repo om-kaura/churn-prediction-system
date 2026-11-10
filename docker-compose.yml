@@ -1,0 +1,40 @@
+services:
+  churn-api:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Bind-mount (not baked into the image) so predictions.db persists across
+      # container restarts/rebuilds, and a local retrain is picked up without
+      # rebuilding the image.
+      - ./outputs:/app/outputs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Serves web_ui/ over plain HTTP. This is NOT optional the way it used to be:
+  # the dashboard's JS is now split into ES6 modules (web_ui/js/*.js loaded via
+  # <script type="module">), and browsers refuse to import ES6 modules from a
+  # file:// page — it has to be served over HTTP even for local-only use.
+  churn-ui:
+    image: nginx:alpine
+    volumes:
+      - ./web_ui:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      # "started" isn't "ready" — churn-api's container starts almost instantly,
+      # but it still has to load 3 pickled models and build SHAP explainers
+      # before /models responds. Waiting for the healthcheck (not just container
+      # start) avoids the dashboard's first fetch losing that race on a fresh
+      # `docker compose up`. The dashboard also retries on its own either way
+      # (see web_ui/js/app.js) — this just makes the common case clean.
+      churn-api:
+        condition: service_healthy

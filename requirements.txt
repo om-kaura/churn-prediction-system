@@ -1,0 +1,30 @@
+# Data & ML pipeline
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+xgboost==3.4.1
+shap==0.52.0
+
+# Plotting (EDA + confusion matrices + SHAP plots)
+matplotlib==3.10.8
+seaborn==0.13.2
+
+# Model persistence
+joblib==1.5.3
+
+# API
+fastapi==0.141.1
+uvicorn==0.53.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+slowapi==0.1.10
+
+# Experiment tracking (train_model.py only — not needed to serve the API)
+mlflow==3.16.1
+
+# Testing
+pytest==9.1.1
+httpx==0.28.1
+
+# Note: for just running the API (e.g. in Docker), see requirements-api.txt —
+# it skips matplotlib/seaborn/pytest/httpx, which api/main.py never imports.

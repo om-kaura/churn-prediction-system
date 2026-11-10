@@ -1,0 +1,5 @@
+{
+  "method": "prior shift: odds divided by the class-weight ratio",
+  "class_weight_ratio": 2.7686,
+  "balanced_threshold": 0.2654
+}

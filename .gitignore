@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Environment config — this project ships a working .env with dev-safe
+# defaults (see .env.example for what each variable does), but a real .env
+# with real secrets shouldn't be committed once you're past dev defaults.
+.env
+
+# Node (only ever created transiently for testing the frontend — nothing here
+# depends on Node at runtime, the dashboard is plain ES6 modules)
+node_modules/
+package-lock.json
+
+# Large generated artifacts are intentionally NOT ignored here — outputs/*.pkl,
+# *.json and *.png are committed so the project runs out of the box without
+# requiring a retrain. Delete this line (and outputs/) from version control
+# if your team would rather regenerate them via `python train_model.py`.
+# Same reasoning for mlruns.db / mlruns/ (MLflow tracking) and
+# outputs/predictions.db (prediction log) — shipped pre-populated so there's
+# something to inspect immediately, not empty on first clone.
